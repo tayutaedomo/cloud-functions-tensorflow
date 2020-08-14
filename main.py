@@ -41,7 +41,7 @@ class CustomModel(Model):
 #         source_blob_name,
 #         destination_file_name))
 
-def handler(request):
+def tensorflow_handler(request):
     global model
     class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
                    'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
