@@ -16,7 +16,15 @@ $ pip install -r requirements.txt
 ## Local Development
 ```
 $ cd cloud-functions-tensorflow
-$ functions-framework --target handler --debug
+$ functions-framework --target tensorflow_handler --debug
 $ curl -v http://0.0.0.0:8080/
+```
+
+
+## Cloud Functions
+```
+$ cd cloud-functions-tensorflow
+$ gcloud functions deploy tensorflow_handler --runtime python37 --memory 512MB --trigger-http --allow-unauthenticated
+$ gcloud functions call tensorflow_handler
 ```
 
