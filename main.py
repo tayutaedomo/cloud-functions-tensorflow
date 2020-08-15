@@ -57,6 +57,8 @@ def tensorflow_handler(request):
         #model.load_weights('/tmp/fashion_mnist_weights')
         model.load_weights(os.path.join(base_dir_path, 'fashion_mnist_weights'))
 
+    input_np = None
+
     if not request.files.get('file'):
         #download_blob('<your_bucket_name>', 'tensorflow/test.png', '/tmp/test.png')
         #image = numpy.array(Image.open('/tmp/test.png'))
@@ -65,16 +67,13 @@ def tensorflow_handler(request):
         input_np = (numpy.array(Image.open(png_path))/255)[numpy.newaxis,:,:,numpy.newaxis]
         #print(numpy.newaxis)
         #print(input_np.shape)
-        predictions = model.call(input_np)
-
-        print(predictions)
-        print("Image is "+class_names[numpy.argmax(predictions)])
-    
-        return class_names[numpy.argmax(predictions)]
 
     else:
         file = request.files['file']
+        print(file.name)
+
         content = file.read()
+
         img = Image.open(BytesIO(content))
         img_grayscale = img.convert('L')
         img_resize = img_grayscale.resize((28, 28))
@@ -83,11 +82,13 @@ def tensorflow_handler(request):
         #print(img_np.shape)
         input_np = img_np[numpy.newaxis,:,:,numpy.newaxis]
 
-        predictions = model.call(input_np)
+    if input_np is None:
+        return ''
 
-        print(file.name)
-        print(predictions)
-        print('Image is ' + class_names[numpy.argmax(predictions)])
+    predictions = model.call(input_np)
 
-        return class_names[numpy.argmax(predictions)]
+    print(predictions)
+    print('Image is ' + class_names[numpy.argmax(predictions)])
+
+    return class_names[numpy.argmax(predictions)]
 
