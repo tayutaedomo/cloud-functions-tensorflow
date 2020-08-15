@@ -1,8 +1,8 @@
 #
 # Refer: https://cloud.google.com/blog/products/ai-machine-learning/how-to-serve-deep-learning-models-using-tensorflow-2-0-with-cloud-functions
 #
-
 import os
+from io import BytesIO
 import numpy
 #import tensorflow
 
@@ -15,19 +15,20 @@ from PIL import Image
 # We keep model as global variable so we don't have to reload it in case of warm invocations
 model = None
 
-class CustomModel(Model):
-  def __init__(self):
-    super(CustomModel, self).__init__()
-    self.conv1 = Conv2D(32, 3, activation='relu')
-    self.flatten = Flatten()
-    self.d1 = Dense(128, activation='relu')
-    self.d2 = Dense(10, activation='softmax')
 
-  def call(self, x):
-    x = self.conv1(x)
-    x = self.flatten(x)
-    x = self.d1(x)
-    return self.d2(x)
+class CustomModel(Model):
+    def __init__(self):
+        super(CustomModel, self).__init__()
+        self.conv1 = Conv2D(32, 3, activation='relu')
+        self.flatten = Flatten()
+        self.d1 = Dense(128, activation='relu')
+        self.d2 = Dense(10, activation='softmax')
+
+    def call(self, x):
+        x = self.conv1(x)
+        x = self.flatten(x)
+        x = self.d1(x)
+        return self.d2(x)
 
 # def download_blob(bucket_name, source_blob_name, destination_file_name):
 #     """Downloads a blob from the bucket."""
@@ -40,6 +41,7 @@ class CustomModel(Model):
 #     print('Blob {} downloaded to {}.'.format(
 #         source_blob_name,
 #         destination_file_name))
+
 
 def tensorflow_handler(request):
     global model
@@ -55,14 +57,38 @@ def tensorflow_handler(request):
         #model.load_weights('/tmp/fashion_mnist_weights')
         model.load_weights(os.path.join(base_dir_path, 'fashion_mnist_weights'))
 
-    #download_blob('<your_bucket_name>', 'tensorflow/test.png', '/tmp/test.png')
-    #image = numpy.array(Image.open('/tmp/test.png'))
-    #input_np = (numpy.array(Image.open('/tmp/test.png'))/255)[numpy.newaxis,:,:,numpy.newaxis]
-    png_path = os.path.join(base_dir_path, 'test.png')
-    input_np = (numpy.array(Image.open(png_path))/255)[numpy.newaxis,:,:,numpy.newaxis]
+    input_np = None
+
+    if not request.files.get('file'):
+        #download_blob('<your_bucket_name>', 'tensorflow/test.png', '/tmp/test.png')
+        #image = numpy.array(Image.open('/tmp/test.png'))
+        #input_np = (numpy.array(Image.open('/tmp/test.png'))/255)[numpy.newaxis,:,:,numpy.newaxis]
+        png_path = os.path.join(base_dir_path, 'test.png')
+        input_np = (numpy.array(Image.open(png_path))/255)[numpy.newaxis,:,:,numpy.newaxis]
+        #print(numpy.newaxis)
+        #print(input_np.shape)
+
+    else:
+        file = request.files['file']
+        print(file.name)
+
+        content = file.read()
+
+        img = Image.open(BytesIO(content))
+        img_grayscale = img.convert('L')
+        img_resize = img_grayscale.resize((28, 28))
+        img_np = numpy.asarray(img_resize) / 255.0
+        #print(img_np)
+        #print(img_np.shape)
+        input_np = img_np[numpy.newaxis,:,:,numpy.newaxis]
+
+    if input_np is None:
+        return ''
+
     predictions = model.call(input_np)
+
     print(predictions)
-    print("Image is "+class_names[numpy.argmax(predictions)])
-    
+    print('Image is ' + class_names[numpy.argmax(predictions)])
+
     return class_names[numpy.argmax(predictions)]
 
