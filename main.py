@@ -2,6 +2,7 @@
 # Refer: https://cloud.google.com/blog/products/ai-machine-learning/how-to-serve-deep-learning-models-using-tensorflow-2-0-with-cloud-functions
 #
 import os
+from io import BytesIO
 import numpy
 #import tensorflow
 
@@ -62,16 +63,31 @@ def tensorflow_handler(request):
         #input_np = (numpy.array(Image.open('/tmp/test.png'))/255)[numpy.newaxis,:,:,numpy.newaxis]
         png_path = os.path.join(base_dir_path, 'test.png')
         input_np = (numpy.array(Image.open(png_path))/255)[numpy.newaxis,:,:,numpy.newaxis]
+        #print(numpy.newaxis)
+        #print(input_np.shape)
         predictions = model.call(input_np)
+
         print(predictions)
         print("Image is "+class_names[numpy.argmax(predictions)])
     
         return class_names[numpy.argmax(predictions)]
 
     else:
-        # file = request.files['file']
-        # content = file.read()
-        # img = Image.open(BytesIO(content))
+        file = request.files['file']
+        content = file.read()
+        img = Image.open(BytesIO(content))
+        img_grayscale = img.convert('L')
+        img_resize = img_grayscale.resize((28, 28))
+        img_np = numpy.asarray(img_resize) / 255.0
+        #print(img_np)
+        #print(img_np.shape)
+        input_np = img_np[numpy.newaxis,:,:,numpy.newaxis]
 
-        return 'TODO: Not implement yet'
+        predictions = model.call(input_np)
+
+        print(file.name)
+        print(predictions)
+        print('Image is ' + class_names[numpy.argmax(predictions)])
+
+        return class_names[numpy.argmax(predictions)]
 
